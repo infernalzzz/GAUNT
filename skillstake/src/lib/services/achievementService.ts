@@ -228,7 +228,7 @@ export class AchievementService {
       
       return (data || []).map(item => ({
         id: item.id,
-        achievement: item.achievement,
+        achievement: Array.isArray(item.achievement) ? item.achievement[0] : item.achievement,
         unlocked_at: item.unlocked_at,
         is_read: false
       }))
@@ -261,8 +261,8 @@ export class AchievementService {
       
       data?.forEach(item => {
         const userId = item.user_id
-        const username = item.user?.username || 'Unknown'
-        const points = item.achievement?.points || 0
+        const username = Array.isArray(item.user) ? item.user[0]?.username : item.user?.username || 'Unknown'
+        const points = Array.isArray(item.achievement) ? item.achievement[0]?.points : item.achievement?.points || 0
 
         if (!userTotals.has(userId)) {
           userTotals.set(userId, { username, achievements: 0, points: 0 })

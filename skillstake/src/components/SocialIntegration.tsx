@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Users, MessageCircle, Bell, Settings } from 'lucide-react'
+import { Users, MessageCircle, Bell } from 'lucide-react'
 import { SocialService } from '../lib/services/socialService'
 import type { SocialStats, SocialNotification } from '../types/social'
 
@@ -48,20 +48,6 @@ const SocialIntegration = () => {
     }
   }
 
-  const handleMarkNotificationAsRead = async (notificationId: string) => {
-    try {
-      await SocialService.markNotificationAsRead(notificationId)
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, is_read: true }
-            : notif
-        )
-      )
-    } catch (error) {
-      console.error('Error marking notification as read:', error)
-    }
-  }
 
   if (isLoading) {
     return null // Don't show anything while loading

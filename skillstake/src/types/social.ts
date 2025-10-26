@@ -1,5 +1,5 @@
 // Social Features Types
-import { Lobby } from './database'
+import type { Lobby } from './database'
 
 export interface Friend {
   id: string

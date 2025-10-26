@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Users, MessageCircle, Bell } from 'lucide-react'
 import FriendsList from './FriendsList'
-import LobbyChat from './LobbyChat'
 import { SocialService } from '../lib/services/socialService'
 import type { SocialStats, SocialNotification } from '../types/social'
 
