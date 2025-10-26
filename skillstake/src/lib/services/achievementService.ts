@@ -111,7 +111,7 @@ export class AchievementService {
           case 'game_specific':
             const game = achievement.requirements.game
             if (game) {
-              progress = stats.matches_by_game[game] || 0
+              progress = (stats.matches_by_game as Record<string, number>)[game] || 0
               maxProgress = achievement.requirements.min_matches || 1
             }
             break
