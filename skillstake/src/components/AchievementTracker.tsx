@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { AchievementService } from '../lib/services/achievementService'
 import AchievementNotification from './AchievementNotification'
 import { useAchievementNotifications } from '../hooks/useAchievementNotifications'
 
