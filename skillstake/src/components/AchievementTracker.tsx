@@ -1,4 +1,4 @@
-import AchievementNotification from './AchievementNotification'
+import AchievementNotificationComponent from './AchievementNotification'
 import { useAchievementNotifications } from '../hooks/useAchievementNotifications'
 
 interface AchievementTrackerProps {
@@ -14,7 +14,7 @@ const AchievementTracker = ({ children }: AchievementTrackerProps) => {
       
       {/* Achievement Notifications */}
       {notifications.map((notification) => (
-        <AchievementNotification
+        <AchievementNotificationComponent
           key={notification.id}
           notification={notification}
           onClose={() => removeNotification(notification.id)}

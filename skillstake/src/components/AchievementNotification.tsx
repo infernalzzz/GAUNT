@@ -9,7 +9,7 @@ interface AchievementNotificationProps {
   duration?: number
 }
 
-const AchievementNotification = ({ 
+const AchievementNotificationComponent = ({ 
   notification, 
   onClose, 
   autoClose = true, 
@@ -122,4 +122,4 @@ const AchievementNotification = ({
   )
 }
 
-export default AchievementNotification
+export default AchievementNotificationComponent

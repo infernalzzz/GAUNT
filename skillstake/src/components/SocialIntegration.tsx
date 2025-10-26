@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Users, MessageCircle, Bell } from 'lucide-react'
 import { SocialService } from '../lib/services/socialService'
-import type { SocialStats, SocialNotification } from '../types/social'
+import type { SocialStats } from '../types/social'
 
 /**
  * Social Integration Component
@@ -9,7 +9,6 @@ import type { SocialStats, SocialNotification } from '../types/social'
  */
 const SocialIntegration = () => {
   const [stats, setStats] = useState<SocialStats | null>(null)
-  const [notifications, setNotifications] = useState<SocialNotification[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -26,13 +25,8 @@ const SocialIntegration = () => {
   const loadSocialData = async () => {
     try {
       setIsLoading(true)
-      const [statsData, notificationsData] = await Promise.all([
-        SocialService.getSocialStats(),
-        SocialService.getNotifications(5) // Get latest 5 notifications
-      ])
-      
+      const statsData = await SocialService.getSocialStats()
       setStats(statsData)
-      setNotifications(notificationsData)
     } catch (error) {
       console.error('Error loading social data:', error)
     } finally {
