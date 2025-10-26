@@ -9,6 +9,7 @@ export interface Friend {
   created_at: string
   updated_at: string
   friend?: UserProfile
+  user?: UserProfile
 }
 
 export interface UserProfile {

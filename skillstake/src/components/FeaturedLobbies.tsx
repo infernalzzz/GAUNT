@@ -9,7 +9,6 @@ import { supabase } from '../lib/supabase'
 
 const FeaturedLobbies = () => {
   const [selectedGame] = useState('All Games')
-  // selectedGame is used in filtering logic
   const [selectedRegion, setSelectedRegion] = useState('All Regions')
   const [searchTerm, setSearchTerm] = useState('')
   const [lobbies, setLobbies] = useState<Lobby[]>([])

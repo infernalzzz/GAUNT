@@ -14,7 +14,7 @@ const LobbyChat = ({ lobbyId, isOpen = true, onToggle }: LobbyChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [participants, setParticipants] = useState<UserProfile[]>([])
+  const [participants] = useState<UserProfile[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -44,6 +44,7 @@ const LobbyChat = ({ lobbyId, isOpen = true, onToggle }: LobbyChatProps) => {
       setMessages(messagesData)
 
       // Load participants (you'll need to implement this based on your lobby system)
+      // TODO: Implement getLobbyParticipants function
       // setParticipants(await getLobbyParticipants(lobbyId))
     } catch (error) {
       console.error('Error loading chat data:', error)

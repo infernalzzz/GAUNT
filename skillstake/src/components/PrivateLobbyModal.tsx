@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Users, Copy, Share2, UserPlus, Settings } from 'lucide-react'
+import { X, Users, Copy, Share2, UserPlus } from 'lucide-react'
 import { SocialService } from '../lib/services/socialService'
 import type { UserProfile, LobbyInvite } from '../types/social'
 
@@ -10,7 +10,7 @@ interface PrivateLobbyModalProps {
   lobbyData?: any
 }
 
-const PrivateLobbyModal = ({ isOpen, onClose, lobbyId, lobbyData }: PrivateLobbyModalProps) => {
+const PrivateLobbyModal = ({ isOpen, onClose, lobbyId }: PrivateLobbyModalProps) => {
   const [friends, setFriends] = useState<UserProfile[]>([])
   const [invites, setInvites] = useState<LobbyInvite[]>([])
   const [inviteCode, setInviteCode] = useState('')
