@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Trophy, Star, TrendingUp, Users } from 'lucide-react'
 import AchievementCategory from './AchievementCategory'
-import AchievementCard from './AchievementCard'
 import { AchievementService } from '../lib/services/achievementService'
-import type { AchievementCategory as AchievementCategoryType, AchievementProgress, AchievementNotification } from '../types/achievements'
+import type { AchievementCategory as AchievementCategoryType, AchievementNotification } from '../types/achievements'
 
 const AchievementDashboard = () => {
   const [categories, setCategories] = useState<AchievementCategoryType[]>([])
