@@ -261,8 +261,8 @@ export class AchievementService {
       
       data?.forEach(item => {
         const userId = item.user_id
-        const username = Array.isArray(item.user) ? item.user[0]?.username : item.user?.username || 'Unknown'
-        const points = Array.isArray(item.achievement) ? item.achievement[0]?.points : item.achievement?.points || 0
+        const username: string = Array.isArray(item.user) ? (item.user[0] as any)?.username : (item.user as any)?.username || 'Unknown'
+        const points: number = Array.isArray(item.achievement) ? (item.achievement[0] as any)?.points : (item.achievement as any)?.points || 0
 
         if (!userTotals.has(userId)) {
           userTotals.set(userId, { username, achievements: 0, points: 0 })

@@ -3,11 +3,11 @@ import { Trophy, Star, TrendingUp, Users } from 'lucide-react'
 import AchievementCategory from './AchievementCategory'
 import AchievementCard from './AchievementCard'
 import { AchievementService } from '../lib/services/achievementService'
-import type { AchievementCategory as AchievementCategoryType, AchievementProgress } from '../types/achievements'
+import type { AchievementCategory as AchievementCategoryType, AchievementProgress, AchievementNotification } from '../types/achievements'
 
 const AchievementDashboard = () => {
   const [categories, setCategories] = useState<AchievementCategoryType[]>([])
-  const [recentAchievements, setRecentAchievements] = useState<AchievementProgress[]>([])
+  const [recentAchievements, setRecentAchievements] = useState<AchievementNotification[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'categories' | 'recent'>('overview')
 
@@ -168,12 +168,22 @@ const AchievementDashboard = () => {
 
         {activeTab === 'recent' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recentAchievements.map((achievementProgress) => (
-              <AchievementCard
-                key={achievementProgress.achievement.id}
-                achievementProgress={achievementProgress}
-                showProgress={false}
-              />
+            {recentAchievements.map((notification) => (
+              <div key={notification.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div className="flex items-center space-x-3 mb-4">
+                  <Trophy className="w-8 h-8 text-yellow-400" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{notification.achievement.name}</h3>
+                    <p className="text-gray-400 text-sm">{notification.achievement.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-yellow-400 font-bold">+{notification.achievement.points} points</span>
+                  <span className="text-gray-400 text-sm">
+                    {new Date(notification.unlocked_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
         )}
