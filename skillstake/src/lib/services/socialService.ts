@@ -260,7 +260,7 @@ export class SocialService {
   }
 
   // Create chat room for lobby
-  static async createChatRoom(lobbyId: string, name?: string): Promise<ChatRoom> {
+  static async createChatRoom(lobbyId: string): Promise<ChatRoom> {
     try {
       // Use database function to create chat room (handles duplicates)
       const { data, error } = await supabase.rpc('create_chat_room_for_lobby', {
