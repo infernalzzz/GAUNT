@@ -48,7 +48,7 @@ const Header = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-bold text-white">GUANT.GG</h1>
+            <h1 className="text-2xl font-bold text-white">GAUNT.GG</h1>
           </div>
 
           {/* Desktop Navigation */}
@@ -56,17 +56,38 @@ const Header = () => {
             <Link to="/" className="text-white hover:text-gray-300 transition-colors">
               Home
             </Link>
-            <a href="#" className="text-white hover:text-gray-300 transition-colors">
+            <a 
+              href="#lobbies" 
+              onClick={(e) => {
+                e.preventDefault()
+                const element = document.getElementById('lobbies')
+                element?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="text-white hover:text-gray-300 transition-colors"
+            >
               Lobbies
             </a>
-            <a href="#" className="text-white hover:text-gray-300 transition-colors">
+            <a 
+              href="#how-it-works" 
+              onClick={(e) => {
+                e.preventDefault()
+                const element = document.getElementById('how-it-works')
+                element?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="text-white hover:text-gray-300 transition-colors"
+            >
               How it Works
             </a>
-            <a href="#" className="text-white hover:text-gray-300 transition-colors">
+            <a 
+              href="#faq" 
+              onClick={(e) => {
+                e.preventDefault()
+                const element = document.getElementById('faq')
+                element?.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="text-white hover:text-gray-300 transition-colors"
+            >
               FAQ
-            </a>
-            <a href="#" className="text-white hover:text-gray-300 transition-colors">
-              Roadmap
             </a>
             {user && (
               <Link to="/social" className="text-white hover:text-gray-300 transition-colors">
@@ -139,17 +160,41 @@ const Header = () => {
               <Link to="/" className="block text-white hover:text-gray-300 px-3 py-2">
                 Home
               </Link>
-              <a href="#" className="block text-white hover:text-gray-300 px-3 py-2">
+              <a 
+                href="#lobbies" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  setIsMenuOpen(false)
+                  const element = document.getElementById('lobbies')
+                  element?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="block text-white hover:text-gray-300 px-3 py-2"
+              >
                 Lobbies
               </a>
-              <a href="#" className="block text-white hover:text-gray-300 px-3 py-2">
+              <a 
+                href="#how-it-works" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  setIsMenuOpen(false)
+                  const element = document.getElementById('how-it-works')
+                  element?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="block text-white hover:text-gray-300 px-3 py-2"
+              >
                 How it Works
               </a>
-              <a href="#" className="block text-white hover:text-gray-300 px-3 py-2">
+              <a 
+                href="#faq" 
+                onClick={(e) => {
+                  e.preventDefault()
+                  setIsMenuOpen(false)
+                  const element = document.getElementById('faq')
+                  element?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="block text-white hover:text-gray-300 px-3 py-2"
+              >
                 FAQ
-              </a>
-              <a href="#" className="block text-white hover:text-gray-300 px-3 py-2">
-                Roadmap
               </a>
               {user && (
                 <Link to="/social" className="block text-white hover:text-gray-300 px-3 py-2">

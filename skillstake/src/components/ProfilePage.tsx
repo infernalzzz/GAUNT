@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, Trophy, Target, Copy, Star } from 'lucide-react'
+import { User, Trophy, Target, Copy, Star, History } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import AchievementDashboard from './AchievementDashboard'
 
@@ -21,7 +21,9 @@ const ProfilePage = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [activeTab, setActiveTab] = useState<'profile' | 'achievements'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'achievements' | 'history'>('profile')
+  const [completedLobbies, setCompletedLobbies] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -52,6 +54,58 @@ const ProfilePage = () => {
 
     fetchUserProfile()
   }, [])
+
+  // Load completed lobbies history
+  useEffect(() => {
+    const loadCompletedLobbies = async () => {
+      if (!user || activeTab !== 'history') return
+
+      try {
+        setLoadingHistory(true)
+
+        // Get all completed lobbies where user is a participant
+        const { data: participants, error } = await supabase
+          .from('lobby_participants')
+          .select(`
+            *,
+            lobby:lobbies!inner(
+              *,
+              host:users!lobbies_created_by_fkey(username),
+              winner:users!lobbies_winner_id_fkey(username)
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+
+        if (error) {
+          console.error('Error loading completed lobbies:', error)
+          setCompletedLobbies([])
+          return
+        }
+
+        // Filter for completed lobbies only
+        const completed = (participants || []).filter(
+          (p: any) => p.lobby?.status === 'completed'
+        )
+
+        // Sort by updated_at descending
+        completed.sort((a: any, b: any) => {
+          const dateA = new Date(a.lobby?.updated_at || a.lobby?.created_at || 0).getTime()
+          const dateB = new Date(b.lobby?.updated_at || b.lobby?.created_at || 0).getTime()
+          return dateB - dateA
+        })
+
+        setCompletedLobbies(completed)
+      } catch (err) {
+        console.error('Error loading history:', err)
+        setCompletedLobbies([])
+      } finally {
+        setLoadingHistory(false)
+      }
+    }
+
+    loadCompletedLobbies()
+  }, [user, activeTab])
 
   const handleCopyReferralLink = async () => {
     if (!profile?.referral_code) return
@@ -113,10 +167,101 @@ const ProfilePage = () => {
             <Star className="w-4 h-4 inline mr-2" />
             Achievements
           </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'history'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <History className="w-4 h-4 inline mr-2" />
+            History
+          </button>
         </div>
 
         {activeTab === 'achievements' ? (
           <AchievementDashboard />
+        ) : activeTab === 'history' ? (
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-6">
+              <History className="w-6 h-6 text-blue-400" />
+              <h2 className="text-2xl font-bold text-white">Match History</h2>
+            </div>
+
+            {loadingHistory ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400">Loading history...</div>
+              </div>
+            ) : completedLobbies.length === 0 ? (
+              <div className="text-center py-12">
+                <History className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <div className="text-gray-400">No completed matches yet</div>
+                <div className="text-sm text-gray-500 mt-2">Your completed lobbies will appear here</div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {completedLobbies.map((participant) => {
+                  const lobby = participant.lobby
+                  const isWinner = lobby.winner_id === user?.id
+                  
+                  return (
+                    <div
+                      key={participant.id}
+                      className={`bg-gray-700 rounded-lg p-4 border-2 ${
+                        isWinner ? 'border-green-500/50' : 'border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-semibold text-white">
+                              {lobby.custom_title || `${lobby.game} - $${lobby.price} - ${lobby.region}`}
+                            </h3>
+                            {isWinner && (
+                              <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium flex items-center">
+                                <Trophy className="w-3 h-3 mr-1" />
+                                Winner
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-400">Game:</span>
+                              <span className="text-white ml-2">{lobby.game}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">Buy-in:</span>
+                              <span className="text-white ml-2">${lobby.price.toFixed(2)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">Winner:</span>
+                              <span className={`ml-2 ${isWinner ? 'text-green-400 font-medium' : 'text-white'}`}>
+                                {lobby.winner?.username || 'Unknown'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400">Completed:</span>
+                              <span className="text-white ml-2">
+                                {lobby.updated_at ? new Date(lobby.updated_at).toLocaleDateString() : '-'}
+                              </span>
+                            </div>
+                          </div>
+                          {isWinner && (
+                            <div className="mt-3 pt-3 border-t border-gray-600">
+                              <span className="text-green-400 font-medium">
+                                Winner Payout: ${lobby.winner_amount?.toFixed(2) || '0.00'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Profile Details */}

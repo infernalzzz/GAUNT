@@ -20,7 +20,7 @@ const HowItWorks = () => {
   ]
 
   return (
-    <section className="relative bg-gradient-to-b from-background to-gray-900 py-24 overflow-hidden">
+    <section id="how-it-works" className="relative bg-gradient-to-b from-background to-gray-900 py-24 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-blue-500/5"></div>
       

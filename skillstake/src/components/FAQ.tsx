@@ -7,7 +7,7 @@ const FAQ = () => {
   const faqs = [
     {
       question: "Is this gambling?",
-      answer: "GUANT.GG is a skill-based competition platform. To play, you must sign up and verify your account. Matches are created and played outside the website in custom game lobbies. GUANT.GG manages booking, check-in, and payouts."
+      answer: "GAUNT.GG is a skill-based competition platform. To play, you must sign up and verify your account. Matches are created and played outside the website in custom game lobbies. GAUNT.GG manages booking, check-in, and payouts."
     },
     {
       question: "How do payouts work?",
@@ -36,7 +36,7 @@ const FAQ = () => {
   }
 
   return (
-    <section className="bg-background py-20">
+    <section id="faq" className="bg-background py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-4xl font-bold text-white text-center mb-16 font-mono">
           Frequently Asked Questions

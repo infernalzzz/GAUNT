@@ -15,15 +15,28 @@ const LobbyChat = ({ lobbyId, isOpen = true, onToggle }: LobbyChatProps) => {
   const [newMessage, setNewMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [participants] = useState<UserProfile[]>([])
+  const [roomId, setRoomId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const channelRef = useRef<any>(null)
 
   useEffect(() => {
     if (lobbyId) {
       loadChatData()
-      setupRealtimeSubscription()
     }
   }, [lobbyId])
+
+  useEffect(() => {
+    if (roomId) {
+      setupRealtimeSubscription()
+      return () => {
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current)
+          channelRef.current = null
+        }
+      }
+    }
+  }, [roomId])
 
   useEffect(() => {
     scrollToBottom()
@@ -38,6 +51,9 @@ const LobbyChat = ({ lobbyId, isOpen = true, onToggle }: LobbyChatProps) => {
       if (!chatRoom) {
         chatRoom = await SocialService.createChatRoom(lobbyId)
       }
+
+      // Store room ID for subscription
+      setRoomId(chatRoom.id)
 
       // Load messages
       const messagesData = await SocialService.getChatMessages(chatRoom.id)
@@ -54,38 +70,61 @@ const LobbyChat = ({ lobbyId, isOpen = true, onToggle }: LobbyChatProps) => {
   }
 
   const setupRealtimeSubscription = () => {
+    if (!roomId) return
+
+    // Clean up existing channel if any
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current)
+    }
+
     const channel = supabase
-      .channel(`lobby-chat-${lobbyId}`)
+      .channel(`lobby-chat-${roomId}`)
       .on('postgres_changes', 
         { 
           event: 'INSERT', 
           schema: 'public', 
           table: 'chat_messages',
-          filter: `room_id=eq.${lobbyId}`
+          filter: `room_id=eq.${roomId}`
         }, 
         async (payload) => {
-          console.log('New chat message:', payload)
+          console.log('🔄 New chat message received:', payload)
           
-          // Get the full message with user data
-          const { data: messageData } = await supabase
-            .from('chat_messages')
-            .select(`
-              *,
-              user:users(id, username, display_name)
-            `)
-            .eq('id', payload.new.id)
-            .single()
-
-          if (messageData) {
-            setMessages(prev => [...prev, messageData])
-          }
+          // Check if message already exists in state (avoid duplicates)
+          setMessages(prev => {
+            const exists = prev.some(msg => msg.id === payload.new.id)
+            if (exists) {
+              console.log('Message already in state, skipping')
+              return prev
+            }
+            
+            // Get the full message with user data
+            supabase
+              .from('chat_messages')
+              .select(`
+                *,
+                user:users(id, username, display_name)
+              `)
+              .eq('id', payload.new.id)
+              .single()
+              .then(({ data: messageData }) => {
+                if (messageData) {
+                  console.log('✅ Adding message to state:', messageData)
+                  setMessages(current => {
+                    // Check again to avoid duplicates
+                    const alreadyExists = current.some(msg => msg.id === messageData.id)
+                    if (alreadyExists) return current
+                    return [...current, messageData]
+                  })
+                }
+              })
+            
+            return prev
+          })
         }
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    channelRef.current = channel
   }
 
   const scrollToBottom = () => {
@@ -94,16 +133,30 @@ const LobbyChat = ({ lobbyId, isOpen = true, onToggle }: LobbyChatProps) => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
+    if (!newMessage.trim() || !roomId) return
+
+    const messageText = newMessage.trim()
+    setNewMessage('') // Clear input immediately for better UX
 
     try {
-      const chatRoom = await SocialService.getChatRoom(lobbyId)
-      if (!chatRoom) return
-
-      await SocialService.sendMessage(chatRoom.id, newMessage.trim())
-      setNewMessage('')
-    } catch (error) {
+      const result = await SocialService.sendMessage(roomId, messageText)
+      console.log('✅ Message sent successfully:', result)
+      
+      // Optimistically add message to state if not already there
+      // (real-time subscription should also add it, but this ensures immediate display)
+      setMessages(prev => {
+        const exists = prev.some(msg => msg.id === result.id)
+        if (exists) {
+          return prev
+        }
+        return [...prev, result]
+      })
+    } catch (error: any) {
       console.error('Error sending message:', error)
+      // Restore message text if sending failed
+      setNewMessage(messageText)
+      const errorMessage = error?.message || error?.error?.message || 'Failed to send message. Please try again.'
+      alert(errorMessage)
     }
   }
 

@@ -181,7 +181,7 @@ const SignUpModal = ({ isOpen, onClose, onSignUpSuccess, onSwitchToLogin }: Sign
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-white">Create Account</h2>
-            <p className="text-gray-400 mt-1">Join GUANT.GG today</p>
+            <p className="text-gray-400 mt-1">Join GAUNT.GG today</p>
           </div>
           <button
             onClick={onClose}

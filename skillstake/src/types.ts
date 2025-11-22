@@ -8,7 +8,7 @@ export interface Lobby {
   platform_fee: number
   bond_per_player: number
   winner_amount: number
-  status: 'waiting' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'pending_admin_review'
   created_at: string
   updated_at: string
   created_by?: string

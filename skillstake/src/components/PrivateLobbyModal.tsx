@@ -82,7 +82,7 @@ const PrivateLobbyModal = ({ isOpen, onClose, lobbyId }: PrivateLobbyModalProps)
       if (navigator.share) {
         await navigator.share({
           title: 'Join my private lobby!',
-          text: `Join my private lobby on GUANT.GG`,
+          text: `Join my private lobby on GAUNT.GG`,
           url: shareUrl
         })
       } else {

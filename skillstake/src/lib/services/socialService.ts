@@ -262,14 +262,22 @@ export class SocialService {
   // Create chat room for lobby
   static async createChatRoom(lobbyId: string, name?: string): Promise<ChatRoom> {
     try {
-      const { data, error } = await supabase
-        .from('chat_rooms')
-        .insert({ lobby_id: lobbyId, name })
-        .select()
-        .single()
+      // Use database function to create chat room (handles duplicates)
+      const { data, error } = await supabase.rpc('create_chat_room_for_lobby', {
+        lobby_uuid: lobbyId
+      })
       
       if (error) throw error
-      return data
+      
+      // Fetch the created/existing room
+      const { data: roomData, error: fetchError } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .eq('id', data)
+        .single()
+      
+      if (fetchError) throw fetchError
+      return roomData
     } catch (err) {
       console.error('Error creating chat room:', err)
       throw err
@@ -300,16 +308,31 @@ export class SocialService {
   // Send chat message
   static async sendMessage(roomId: string, message: string, messageType: string = 'text'): Promise<ChatMessage> {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        throw new Error('User must be authenticated to send messages')
+      }
+
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert({ room_id: roomId, message, message_type: messageType })
+        .insert({ 
+          room_id: roomId, 
+          message, 
+          message_type: messageType,
+          user_id: user.id
+        })
         .select(`
           *,
           user:users(id, username, display_name)
         `)
         .single()
       
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error sending message:', error)
+        throw error
+      }
       return data
     } catch (err) {
       console.error('Error sending message:', err)

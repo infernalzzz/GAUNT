@@ -14,6 +14,7 @@ import AchievementDashboard from './components/AchievementDashboard'
 import AchievementTracker from './components/AchievementTracker'
 import SocialDashboard from './components/SocialDashboard'
 import SocialIntegration from './components/SocialIntegration'
+import BackToTop from './components/BackToTop'
 
 function HomePage() {
   return (
@@ -44,6 +45,7 @@ function App() {
           </Routes>
           <Footer />
           <SocialIntegration />
+          <BackToTop />
         </div>
       </AchievementTracker>
     </Router>

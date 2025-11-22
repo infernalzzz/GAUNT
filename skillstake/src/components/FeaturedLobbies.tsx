@@ -5,6 +5,8 @@ import { LobbyService } from '../lib/services/lobbyService'
 import CreateLobbyModal from './CreateLobbyModal'
 import LobbyDetailsModal from './LobbyDetailsModal'
 import LobbyChat from './LobbyChat'
+import LoginModal from './LoginModal'
+import JoinConfirmationModal from './JoinConfirmationModal'
 import { supabase } from '../lib/supabase'
 
 const FeaturedLobbies = () => {
@@ -20,6 +22,11 @@ const FeaturedLobbies = () => {
   const [user, setUser] = useState<any>(null)
   const [showChat, setShowChat] = useState(false)
   const [chatLobbyId, setChatLobbyId] = useState<string | null>(null)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showJoinConfirmation, setShowJoinConfirmation] = useState(false)
+  const [isJoining, setIsJoining] = useState(false)
+  const [showMyLobbies, setShowMyLobbies] = useState(false)
+  const [myParticipatingLobbies, setMyParticipatingLobbies] = useState<Set<string>>(new Set())
   
   // New filter states
   const [sortBy, setSortBy] = useState('newest')
@@ -74,12 +81,27 @@ const FeaturedLobbies = () => {
     })
   }
 
-  // Check authentication status
+  // Check authentication status and load user's participating lobbies
   useEffect(() => {
     const checkUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         setUser(user)
+        
+        // Load lobbies where user is a participant
+        if (user) {
+          const { data: participants, error } = await supabase
+            .from('lobby_participants')
+            .select('lobby_id')
+            .eq('user_id', user.id)
+            .eq('status', 'active')
+          
+          if (!error && participants) {
+            setMyParticipatingLobbies(new Set(participants.map(p => p.lobby_id)))
+          }
+        } else {
+          setMyParticipatingLobbies(new Set())
+        }
       } catch (err) {
         console.error('Error checking auth:', err)
       } finally {
@@ -90,8 +112,23 @@ const FeaturedLobbies = () => {
     checkUser()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
+      
+      // Reload participating lobbies when auth changes
+      if (session?.user) {
+        const { data: participants, error } = await supabase
+          .from('lobby_participants')
+          .select('lobby_id')
+          .eq('user_id', session.user.id)
+          .eq('status', 'active')
+        
+        if (!error && participants) {
+          setMyParticipatingLobbies(new Set(participants.map(p => p.lobby_id)))
+        }
+      } else {
+        setMyParticipatingLobbies(new Set())
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -141,6 +178,17 @@ const FeaturedLobbies = () => {
           }
         }
         
+        // Filter out completed lobbies from public view
+        lobbiesData = lobbiesData.filter(lobby => lobby.status !== 'completed')
+        
+        // Apply "My Lobbies" filter if active
+        if (showMyLobbies && user) {
+          lobbiesData = lobbiesData.filter(lobby => {
+            // Show lobbies created by user or where user is a participant
+            return lobby.created_by === user.id || myParticipatingLobbies.has(lobby.id)
+          })
+        }
+        
         // Apply additional filters
         lobbiesData = applyFilters(lobbiesData)
         
@@ -160,7 +208,7 @@ const FeaturedLobbies = () => {
     }
 
     loadLobbies()
-  }, [selectedGame, selectedRegion, searchTerm, status, platform, priceRange, sortBy])
+  }, [selectedGame, selectedRegion, searchTerm, status, platform, priceRange, sortBy, showMyLobbies, user, myParticipatingLobbies])
 
   // Real-time updates for lobbies
   useEffect(() => {
@@ -194,6 +242,16 @@ const FeaturedLobbies = () => {
               } else {
                 updatedLobbies = await LobbyService.getLobbiesByGameAndRegion(selectedGame, selectedRegion)
               }
+            }
+            
+            // Filter out completed lobbies from public view
+            updatedLobbies = updatedLobbies.filter(lobby => lobby.status !== 'completed')
+            
+            // Apply "My Lobbies" filter if active
+            if (showMyLobbies && user) {
+              updatedLobbies = updatedLobbies.filter(lobby => {
+                return lobby.created_by === user.id || myParticipatingLobbies.has(lobby.id)
+              })
             }
             
             // Apply filters and sorting
@@ -237,6 +295,29 @@ const FeaturedLobbies = () => {
               }
             }
             
+            // Filter out completed lobbies from public view
+            updatedLobbies = updatedLobbies.filter(lobby => lobby.status !== 'completed')
+            
+            // Reload participating lobbies when participants change
+            if (user) {
+              const { data: participants } = await supabase
+                .from('lobby_participants')
+                .select('lobby_id')
+                .eq('user_id', user.id)
+                .eq('status', 'active')
+              
+              if (participants) {
+                setMyParticipatingLobbies(new Set(participants.map(p => p.lobby_id)))
+              }
+            }
+            
+            // Apply "My Lobbies" filter if active
+            if (showMyLobbies && user) {
+              updatedLobbies = updatedLobbies.filter(lobby => {
+                return lobby.created_by === user.id || myParticipatingLobbies.has(lobby.id)
+              })
+            }
+            
             // Apply filters and sorting
             updatedLobbies = applyFilters(updatedLobbies)
             updatedLobbies = applySorting(updatedLobbies)
@@ -253,22 +334,33 @@ const FeaturedLobbies = () => {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [selectedGame, selectedRegion, searchTerm, status, platform, priceRange, sortBy])
+  }, [selectedGame, selectedRegion, searchTerm, status, platform, priceRange, sortBy, showMyLobbies, user, myParticipatingLobbies])
 
-  const handleJoinLobby = async (lobbyId: string) => {
+  const handleJoinLobby = async () => {
+    if (!selectedLobbyId) return
+    
     try {
-      await LobbyService.joinLobby(lobbyId)
+      setIsJoining(true)
+      await LobbyService.joinLobby(selectedLobbyId)
+      
       // Reload lobbies to update player counts
       let updatedLobbies = await LobbyService.getLobbies()
+      
+      // Filter out completed lobbies from public view
+      updatedLobbies = updatedLobbies.filter(lobby => lobby.status !== 'completed')
       
       // Apply filters and sorting
       updatedLobbies = applyFilters(updatedLobbies)
       updatedLobbies = applySorting(updatedLobbies)
       
       setLobbies(updatedLobbies)
+      setShowJoinConfirmation(false)
+      setSelectedLobbyId(null)
     } catch (err) {
       console.error('Error joining lobby:', err)
       alert('Failed to join lobby. Please try again.')
+    } finally {
+      setIsJoining(false)
     }
   }
 
@@ -299,6 +391,51 @@ const FeaturedLobbies = () => {
     setSelectedLobbyId(null)
   }
 
+  const handleLobbyJoined = async () => {
+    // Refresh lobbies after joining from details modal
+    try {
+      console.log('🔄 Refreshing lobbies after join from details modal...')
+      
+      // Reload participating lobbies
+      if (user) {
+        const { data: participants } = await supabase
+          .from('lobby_participants')
+          .select('lobby_id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+        
+        if (participants) {
+          setMyParticipatingLobbies(new Set(participants.map(p => p.lobby_id)))
+        }
+      }
+      
+      let updatedLobbies = await LobbyService.getLobbies()
+      
+      // Filter out completed lobbies from public view
+      updatedLobbies = updatedLobbies.filter(lobby => lobby.status !== 'completed')
+      
+      // Apply "My Lobbies" filter if active
+      if (showMyLobbies && user) {
+        updatedLobbies = updatedLobbies.filter(lobby => {
+          return lobby.created_by === user.id || myParticipatingLobbies.has(lobby.id)
+        })
+      }
+      
+      // Apply filters and sorting
+      updatedLobbies = applyFilters(updatedLobbies)
+      updatedLobbies = applySorting(updatedLobbies)
+      
+      setLobbies(updatedLobbies)
+      console.log('✅ Lobbies refreshed after join')
+    } catch (err) {
+      console.error('❌ Error refreshing lobbies after join:', err)
+    }
+  }
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false)
+  }
+
   const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'in_progress':
@@ -315,12 +452,30 @@ const FeaturedLobbies = () => {
   }
 
   return (
-    <section className="bg-background py-16">
+    <section id="lobbies" className="bg-background py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-          <h2 className="text-4xl font-bold text-white mb-4 sm:mb-0">Featured Lobbies</h2>
-          <div className="flex items-center gap-4">
+          <h2 className="text-4xl font-bold text-white mb-4 sm:mb-0">
+            {showMyLobbies && user ? 'My Lobbies' : 'Featured Lobbies'}
+          </h2>
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* My Lobbies Toggle */}
+            {user && (
+              <button
+                onClick={() => setShowMyLobbies(!showMyLobbies)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
+                  showMyLobbies
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-purple-500/25'
+                    : 'bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {showMyLobbies ? 'All Lobbies' : 'My Lobbies'}
+              </button>
+            )}
             {user ? (
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -339,10 +494,15 @@ const FeaturedLobbies = () => {
                 Create Lobby (Login Required)
               </button>
             )}
-            <a href="#" className="text-white hover:text-gray-300 flex items-center gap-2 transition-colors">
-              See all lobbies
-              <ArrowRight size={16} />
-            </a>
+            {!user && (
+              <button 
+                onClick={() => setShowLoginModal(true)}
+                className="text-white hover:text-gray-300 flex items-center gap-2 transition-colors"
+              >
+                See all lobbies
+                <ArrowRight size={16} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -622,12 +782,15 @@ const FeaturedLobbies = () => {
                   <span>Chat</span>
                 </button>
                 <button 
-                  onClick={() => handleJoinLobby(lobby.id)}
+                  onClick={() => {
+                    setSelectedLobbyId(lobby.id)
+                    setShowJoinConfirmation(true)
+                  }}
                   disabled={lobby.status !== 'waiting' || lobby.current_players >= lobby.max_players}
                   className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-blue-500/25"
                 >
                   {lobby.status === 'waiting' && lobby.current_players < lobby.max_players 
-                    ? 'Join Now' 
+                    ? 'Quick Join' 
                     : lobby.status === 'in_progress' 
                     ? 'In Progress' 
                     : 'Full'}
@@ -654,6 +817,7 @@ const FeaturedLobbies = () => {
         isOpen={showDetailsModal}
         onClose={handleCloseDetails}
         lobbyId={selectedLobbyId}
+        onLobbyJoined={handleLobbyJoined}
       />
 
       {/* Chat Modal */}
@@ -677,6 +841,29 @@ const FeaturedLobbies = () => {
           </div>
         </div>
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+        onSwitchToSignUp={() => {
+          setShowLoginModal(false)
+          // You can add signup modal state here if needed
+        }}
+      />
+
+      {/* Join Confirmation Modal */}
+      <JoinConfirmationModal
+        isOpen={showJoinConfirmation}
+        onClose={() => {
+          setShowJoinConfirmation(false)
+          setSelectedLobbyId(null)
+        }}
+        onConfirm={handleJoinLobby}
+        lobby={lobbies.find(l => l.id === selectedLobbyId) || null}
+        isJoining={isJoining}
+      />
     </section>
   )
 }
